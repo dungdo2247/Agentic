@@ -19,9 +19,13 @@ Use related patterns only as implementation reference, not as policy.
 | Project | Role |
 | --- | --- |
 | **Domain** | Core business models, enums, exceptions, and utilities. No dependencies on other layers. |
-| **Application** | Use-cases: CQRS commands and queries, DTOs, pipeline behaviors, interfaces. Depends only on Domain. |
+| **Application** | Use-case orchestration: business logic coordination, DTOs, service interfaces, validation. Depends only on Domain. |
 | **Infrastructure** | Technical implementations: persistence, caching, external service adapters, observability, telemetry. Implements interfaces defined in Application. |
-| **WebApi** | Entry point: Minimal API endpoints, middleware, DI bootstrapping, OpenAPI configuration. Depends on Application and Infrastructure. |
+| **WebApi** | HTTP entry point: API endpoints (Minimal API or Controllers), middleware, DI bootstrapping, OpenAPI configuration. Depends on Application and Infrastructure. |
+
+> **Note:** The Application layer may use different patterns depending on the project
+> (CQRS + MediatR, service layer, vertical slices, etc.).
+> See the project-specific `.Project.Instructions.md` files for the actual pattern in use.
 
 ## Dependency Rules
 
@@ -37,7 +41,7 @@ Use related patterns only as implementation reference, not as policy.
 - Application coordinates use-cases and orchestration
 - Infrastructure owns technical details and external integrations
 - WebApi owns HTTP transport concerns only
-- Keep DTOs, EF Core mappings, HTTP models, and middleware concerns out of Domain
+- Keep DTOs, ORM mappings, HTTP models, and middleware concerns out of Domain
 - Keep business logic out of controllers, endpoints, and middleware
 
 ## Related Pattern Files
@@ -46,9 +50,9 @@ Use related patterns only as implementation reference, not as policy.
 | --- | --- |
 | Project and folder layout | `patterns/StructurePatterns.md` |
 | API endpoints and OpenAPI | `patterns/ApiPatterns.md` |
-| CQRS handlers and validation | `patterns/ApplicationPatterns.md` |
+| Application use-cases and validation | `patterns/ApplicationPatterns.md` |
 | Repositories, caching, DI, HTTP adapters | `patterns/InfrastructurePatterns.md` |
-| EF Core audit and configuration | `patterns/EntityFrameworkCorePatterns.md` |
+| ORM audit and configuration | `patterns/EntityFrameworkCorePatterns.md` |
 | Background jobs and shared primitives | `patterns/CodePatterns.md` |
-| Application Insights and request logging | `patterns/LogPatterns.md` |
+| Observability and request logging | `patterns/LogPatterns.md` |
 | Unit and integration tests | `patterns/TestingPatterns.md` |

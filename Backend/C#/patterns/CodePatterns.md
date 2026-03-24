@@ -1,6 +1,11 @@
 ﻿# General Code Patterns
 
-## Hangfire Background Job
+> Background job patterns vary by job runner (Hangfire, Quartz, hosted services, etc.).
+> Use the variant that matches your project. Irrelevant variants are removed during Tier 2 setup.
+
+---
+
+## Variant: Hangfire Background Job
 
 `IJobCancellationToken` for graceful shutdown. `[AutomaticRetry]` for resilience.
 Location: `Infrastructure/Services/HangfireJobService/`

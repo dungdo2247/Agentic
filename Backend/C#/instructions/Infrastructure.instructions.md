@@ -1,8 +1,15 @@
 ﻿---
 name: Infrastructure Layer Instructions
-description: Implementation rules for persistence, adapters, caching, Hangfire jobs, and dependency injection in Infrastructure.
+description: Implementation rules for persistence, adapters, caching, background jobs, and dependency injection in Infrastructure.
 applyTo: "**/*.Infrastructure/**"
 ---
+
+# Infrastructure Layer Instructions
+
+## Purpose
+
+This file defines rules for the Infrastructure layer.
+It is the source of policy for persistence, external integrations, caching, jobs, and DI organization.
 
 ## Related Pattern Files
 
@@ -11,78 +18,60 @@ applyTo: "**/*.Infrastructure/**"
 - `patterns/CodePatterns.md`
 - `patterns/LogPatterns.md`
 
-## Layer Breakdown
-
-### Source Projects
-
-| Project | Role |
-| --- | --- |
-| Domain | Core business models, enums, exceptions, and utilities. No dependencies on other layers. |
-| Application | Use-cases CQRS commands/queries (MediatR), DTOs, pipeline behaviors, interfaces. Depends only on Domain. |
-| Infrastructure | Technical implementations caching, external service adapters, observability/telemetry. Implements interfaces defined in Application. |
-| WebApi | Entry point Minimal API endpoints, middleware, DI bootstrapping. Depends on Application and Infrastructure. |
-
 ---
 
-### ProjectName.Infrastructure Folder Structure
+### Folder Structure
 
 | Folder | Purpose |
 |---|---|
-| Caches/ | Caching helpers and decorated cache services |
-| Files/ | File handling utilities (e.g. AzureBlobStorageService) |
-| Services/ | Implementations of Application interfaces, external adapters |
-| Services/HangfireJobService/ | Background job implementations |
-| Persistence/ | ApplicationDbContext, ApplicationDbContextFactory |
-| Persistence/Configurations/ | EF Core IEntityTypeConfiguration classes |
-| Persistence/Repositories/ | Repository implementations |
-| Migrations/ | EF Core generated migration files |
-| Migrations/DBScripts/ | Idempotent SQL scripts generated from migrations |
+| `Caches/` | Caching helpers and decorated cache services |
+| `Files/` | File handling utilities (e.g. blob storage services) |
+| `Services/` | Implementations of Application interfaces, external adapters |
+| `Services/{JobRunner}Jobs/` | Background job implementations |
+| `Persistence/` | DbContext, database factory |
+| `Persistence/Configurations/` | ORM entity/type configuration classes |
+| `Persistence/Repositories/` | Repository implementations |
+| `Migrations/` | ORM-generated migration files |
+
+> For the exact folder structure of your project, see `Infrastructure.Project.Instructions.md`.
 
 ---
 
 ## Implementation Rules
 
-- Implement all interfaces defined in Application/Common/Interfaces/...
-- Never expose DbContext to Application - always wrap in a repository
-- Use .AsNoTracking() by default on all read queries
-- Use IEntityTypeConfiguration for EF Core mappings - never configure in entity classes
-- Use DelegatingHandler for injecting auth headers into HTTP clients
-- Use GetOrCreateAsync for cache operations to prevent stampedes
-- Register all services via IServiceCollection extension methods in WebApi/Extensions/
-- Place Application Insights middleware/telemetry implementations under `Infrastructure/ApplicationInsights/`
+- Implement all interfaces defined in Application
+- Never expose DbContext directly to Application — always wrap in a repository or unit-of-work
+- Use read-only queries by default for read operations (e.g. `.AsNoTracking()` in EF Core)
+- Use ORM configuration classes for entity mappings — never configure in entity classes
+- Use `DelegatingHandler` for injecting auth headers into HTTP clients
+- Use cache-aside pattern (get-or-create) for cache operations to prevent stampedes
+- Register all services via `IServiceCollection` extension methods
+- Keep observability/telemetry implementations under a dedicated folder in Infrastructure
 
 ---
 
 ## Dependency Injection
 
-- DependencyInjection.cs has a single public entry method AddInfrastructureServices that only orchestrates calls to private sub-methods. No direct registrations in the entry method.
+- `DependencyInjection.cs` has a single public entry method `AddInfrastructureServices` that only orchestrates calls to private sub-methods. No direct registrations in the entry method.
 - Each private sub-method registers one technical concern only.
-- Sub-methods are private static void - never exposed outside DependencyInjection.cs.
-- Naming convention: Add{TechnicalConcern} e.g. AddDatabase, AddRepositories, AddCoreServices, AddHttpClients, AddAuthentication, AddCaching.
-- Add a new private sub-method for each new technical concern - never mix concerns inside an existing sub-method.
-- Optional integrations must silently skip registration when their configuration is absent - never throw on missing optional config.
-- See InfrastructurePatterns.md for fully implemented reference sub-methods.
+- Sub-methods are `private static void` — never exposed outside `DependencyInjection.cs`.
+- Naming convention: `Add{TechnicalConcern}` (e.g. `AddDatabase`, `AddRepositories`, `AddCoreServices`, `AddHttpClients`, `AddAuthentication`, `AddCaching`).
+- Add a new private sub-method for each new technical concern — never mix concerns inside an existing sub-method.
+- Optional integrations must silently skip registration when their configuration is absent — never throw on missing optional config.
+- See `InfrastructurePatterns.md` for fully implemented reference sub-methods.
 
-### Current sub-methods
-
-| Method | Concern |
-|---|---|
-| AddDatabase(services, connectionString) | ApplicationDbContext and IApplicationDbContext |
-| AddRepositories(services) | All IXxxRepository to XxxRepository |
-| AddCoreServices(services) | IUserContext, IDocumentExpiryNotificationService, HttpContextAccessor |
-| AddHttpClients(services) | Typed HttpClient registrations |
-| AddObservability(services, configuration) | Application Insights telemetry + logging middleware registrations |
+> For the current sub-methods table of your project, see `Infrastructure.Project.Instructions.md`.
 
 ### Adding a new concern checklist
 
-1. Create a private static void Add{Concern}(...) method in DependencyInjection.cs
-2. Add the call to AddInfrastructureServices
+1. Create a `private static void Add{Concern}(...)` method in `DependencyInjection.cs`
+2. Add the call to `AddInfrastructureServices`
 3. If the concern is optional, guard with a null/empty config check and return silently
-4. Update the sub-methods table above
+4. Update the sub-methods table in `Infrastructure.Project.Instructions.md`
 
 ---
 
-## Observability (Application Insights)
+## Observability
 
 - Keep telemetry and request logging implementation in Infrastructure.
 - Register observability via a dedicated DI concern method, e.g. `AddObservability(...)`.
@@ -94,28 +83,29 @@ applyTo: "**/*.Infrastructure/**"
 ## External Service Adapters
 
 - Wrap all external HTTP APIs behind an Application interface
-- Use Refit for typed HTTP clients
-- Map HTTP errors to domain exceptions - never propagate raw HttpRequestException
+- Map HTTP errors to domain exceptions — never propagate raw `HttpRequestException`
 
 ---
 
-## Background Jobs (Hangfire)
+## Background Jobs
 
-- Place under Services/HangfireJobService/
-- Accept IJobCancellationToken for graceful shutdown
-- Decorate with [AutomaticRetry(Attempts = 3)]
+- Place under a dedicated folder in `Services/`
+- Accept cancellation tokens for graceful shutdown
+- Configure automatic retry with sensible defaults
+- Use scoped service resolution when jobs need scoped dependencies like DbContext
 
 ---
 
 ## Audit Fields
 
-- CreatedBy and CreatedAt are set once on creation and must not be overwritten on subsequent updates.
-- UpdatedBy and UpdatedAt are set on every modification and reflect the identity of the last editor.
+- `CreatedBy` and `CreatedAt` are set once on creation and must not be overwritten on subsequent updates.
+- `UpdatedBy` and `UpdatedAt` are set on every modification and reflect the identity of the last editor.
 
 ---
 
 ## Authentication and Authorization
 
-- The Infrastructure layer provides implementations for IUserContext.
-- Expose information from the current authenticated user context (user ID, roles) to support authorization decisions in the Application layer.
+- The Infrastructure layer provides implementations for user context abstractions (e.g. `IUserContext`).
+- Expose information from the current authenticated user context (user ID, roles, claims) to support authorization decisions in the Application layer.
+- Create extension methods for common user context transformations to avoid spreading authentication details across the codebase.
 - Create UserContextExtensions for common transformations (e.g. GetUserId()) to avoid spreading authentication details across the codebase.

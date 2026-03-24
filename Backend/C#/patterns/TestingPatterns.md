@@ -1,6 +1,12 @@
 # Testing Patterns
 
-## Unit Test — Query Handler
+> These patterns cover common test implementations.
+> Use the variant that matches your project's architecture.
+> During Tier 2 setup, irrelevant variants are removed and project-specific patterns are generated.
+
+---
+
+## Variant: CQRS — Unit Test for Query Handler
 
 ```csharp
 using FluentAssertions;
@@ -41,7 +47,49 @@ public class {QueryName}QueryHandlerTests
 
 ---
 
-## Unit Test — FluentValidation Validator
+## Variant: Service Layer — Unit Test for Service
+
+```csharp
+using FluentAssertions;
+using NSubstitute;
+
+public class {Entity}ServiceTests
+{
+    private readonly I{Entity}Repository _repository = Substitute.For<I{Entity}Repository>();
+    private readonly ILogger<{Entity}Service> _logger = Substitute.For<ILogger<{Entity}Service>>();
+    private readonly {Entity}Service _service;
+
+    public {Entity}ServiceTests() => _service = new(_repository, _logger);
+
+    [Fact]
+    public async Task GetByIdAsync_WhenEntityExists_ShouldReturnDto()
+    {
+        var id = Guid.NewGuid();
+        _repository.GetByIdAsync(id, Arg.Any<CancellationToken>())
+            .Returns(new {Entity} { Id = id });
+
+        var result = await _service.GetByIdAsync(id, CancellationToken.None);
+
+        result.Should().NotBeNull();
+        result!.Id.Should().Be(id);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_WhenEntityNotFound_ShouldReturnNull()
+    {
+        _repository.GetByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns(({Entity}?)null);
+
+        var result = await _service.GetByIdAsync(Guid.NewGuid(), CancellationToken.None);
+
+        result.Should().BeNull();
+    }
+}
+```
+
+---
+
+## Unit Test — FluentValidation Validator (all patterns)
 
 ```csharp
 using FluentValidation.TestHelper;

@@ -1,6 +1,6 @@
 ---
 name: WebApi Layer Instructions
-description: Guidelines for minimal API endpoints, OpenAPI setup, middleware, and WebApi layer boundaries.
+description: Guidelines for API endpoints, OpenAPI setup, middleware, and WebApi layer boundaries.
 applyTo: "**/*.WebApi/**"
 ---
 
@@ -21,36 +21,49 @@ Do not move business or infrastructure implementation concerns into WebApi.
 
 | Folder | Purpose |
 |---|---|
-| `Endpoints/` | Minimal API endpoint definitions grouped by feature |
+| `Endpoints/` or `Controllers/` | API endpoint definitions grouped by feature |
 | `Extensions/` | `IServiceCollection` and `WebApplication` extension methods |
-| `Middleware/` | Custom ASP.NET Core middleware such as exceptions or API key authentication |
+| `Middleware/` | Custom ASP.NET Core middleware (exception handling, authentication, etc.) |
 
-## Minimal API Rules
+> The project may use **Minimal API endpoints**, **MVC controllers**, or a mix.
+> See `WebApi.Project.Instructions.md` for the actual style used.
 
-- Route group paths must be lowercase: `/api/v1/{domainmodel}`
+## API Rules (apply to all styles)
+
+- Route paths must be lowercase: `/api/v1/{resource}`
+- Endpoints/actions are thin wrappers only — no business logic inside handlers
+- Declare response types and error codes for OpenAPI documentation
+- Group endpoints/controllers by feature or domain concept
+
+### Minimal API specific
+
 - `WithTags(...)` values must be PascalCase
 - Use `TypedResults`, not `Results`
 - Declare `.Produces<T>()` and `.ProducesProblem()` on every endpoint
-- Endpoints are thin wrappers only, with no business logic inside handlers
 - Group endpoints by feature using `MapGroup`
+
+### MVC Controller specific
+
+- Use `[ApiController]` attribute on all API controllers
+- Use `[ProducesResponseType]` attributes for OpenAPI documentation
+- Keep controllers thin — delegate to Application services or MediatR
 
 ## OpenAPI Rules
 
-- Register via `AddOpenApiServices()` and `UseOpenApiPipeline()` extension methods
-- `OpenApiExtensions.cs` lives in `{ProjectName}.WebApi/Extensions/`
-- Use Scalar for API reference UI, not Swagger UI
-- Call `UseOpenApiPipeline()` after `UseAuthentication()` and `UseAuthorization()`
-- Register a document transformer to configure `Servers` and `Info`
-- Register `AddApiHeaderParameter` as an operation transformer for the API key header
+- Register OpenAPI services and middleware via extension methods
+- Configure API reference UI (Scalar, Swagger UI, or similar)
+- Configure API documentation with server URLs, info, and version
+- Register operation transformers for required headers (e.g. API key)
 
 ## Middleware Rules
 
 - Global exception handling goes in a dedicated class under `Middleware/`
-- API key authentication is handled in middleware, not in endpoint filters
+- API key authentication (if used) is handled in middleware, not in endpoint filters
 - All middleware is registered in `Program.cs` via extension methods
 - Request logging middleware is added in the pipeline after `UseRouting()` and before `UseAuthentication()`
-- Request logging middleware implementation remains in Infrastructure under `Infrastructure/ApplicationInsights/`
+- Request logging middleware implementation remains in Infrastructure
 
 ## Authentication and Authorization
 
-- Add service extensions for authentication schemes and authorization policies in `AuthenticationExtensions.cs` under `Extensions/`
+- Add service extensions for authentication schemes and authorization policies
+- Keep auth configuration in dedicated extension methods under `Extensions/`

@@ -1,6 +1,6 @@
 ---
 name: Application Layer Instructions
-description: Rules for organizing CQRS features, validators, DTO ownership, and interface boundaries in the Application layer.
+description: Rules for organizing use-cases, validators, DTO ownership, and interface boundaries in the Application layer.
 applyTo: "**/*.Application/**"
 ---
 
@@ -9,53 +9,69 @@ applyTo: "**/*.Application/**"
 ## Purpose
 
 This file defines rules for the Application layer.
-It is the source of policy for CQRS organization, validators, DTO ownership, and interface boundaries.
+It is the source of policy for use-case organization, validators, DTO ownership, and interface boundaries.
 
 ## Related Pattern Files
 
 - `patterns/ApplicationPatterns.md`
 
+## Architecture Patterns
+
+The Application layer supports different organization patterns.
+The actual pattern used in your project is defined in the project-specific `.Project.Instructions.md` files.
+
+### Common patterns
+
+| Pattern | Description |
+|---|---|
+| **CQRS + MediatR** | Commands and queries as separate request objects dispatched via MediatR. Each use-case has a handler and optional validator. |
+| **Service Layer** | Business logic organized in service classes injected into controllers or endpoints. |
+| **Vertical Slices** | Features organized in self-contained folders with handler, endpoint, validator, and DTOs co-located. |
+
+> When `.Project.Instructions.md` files exist, follow the project-specific pattern described there.
+> When they do not exist, follow the pattern detected in the codebase.
+
 ## Folder Structure
+
+The folder structure varies by architecture pattern. Below is a representative structure:
 
 | Folder | Purpose |
 |---|---|
-| `Common/Behaviors/` | MediatR pipeline behaviors such as `ValidationBehavior` |
+| `Common/` | Shared behaviors, interfaces, and cross-cutting concerns |
 | `Common/Interfaces/` | Abstractions consumed by features and implemented in Infrastructure |
-| `Features/{Feature}/Queries/{QueryName}/` | Query, handler, and validator co-located |
-| `Features/{Feature}/Commands/{CommandName}/` | Command, handler, and validator co-located |
-| `Features/{Feature}/Dtos/` | Response DTOs owned by that feature |
+| `Features/{Feature}/` or `Services/` | Use-case handlers or service classes grouped by feature |
 | `Utils/` | Shared application-level utilities |
 
-## CQRS Rules
+> For the exact folder structure of your project, see `Application.Project.Instructions.md`.
 
-- Every use-case is either a Query for reads or a Command for writes
-- Each query or command lives in its own sub-folder under `Queries/` or `Commands/`
-- Each folder contains exactly three primary files:
-  - `{Name}.cs` for the request record
-  - `{Name}Handler.cs` for the MediatR handler
-  - `{Name}Validator.cs` for the FluentValidation validator
-- Handlers must not call other handlers directly
+## Universal Rules (apply to all patterns)
+
+### Use-Case Organization
+
+- Each use-case (read or write) should be clearly identifiable
+- Use-case handlers or service methods must not call other handlers directly
 - Application must not reference Infrastructure namespaces
 
-## DTO Ownership
+### DTO Ownership
 
-- Response DTOs belong in `Features/{Feature}/Dtos/`
+- Response DTOs belong in the Application layer, co-located with their feature or in a shared DTOs folder
 - DTOs must not be placed in Domain
-- Request models are co-located with their handler
+- Request/input models are co-located with their use-case handler or service
 
-## Validation
+### Validation
 
-- Use FluentValidation for all commands and queries
-- Validation is auto-discovered by `ValidationBehavior<TRequest, TResponse>` and must not be invoked manually
-- Validator naming follows `{Name}Validator.cs` and is co-located with its command or query
+- Validate all inputs at the application boundary
+- Use a consistent validation approach across the project (FluentValidation, DataAnnotations, or manual)
+- Validator naming follows `{Name}Validator.cs` and is co-located with its use-case
+- Validation logic must not leak into Domain or Infrastructure
 
-## Interfaces
+### Interfaces
 
-- All infrastructure dependencies are abstracted behind interfaces in `Common/Interfaces/`
+- All infrastructure dependencies are abstracted behind interfaces in the Application layer
 - Mirror folder and namespace structure to the implementing class in Infrastructure for easier navigation
 - Interface naming uses `I{Name}`
 
-## Authentication and Authorization
+### Authentication and Authorization
 
 - The Application layer defines abstractions such as `IUserContext`
 - Application may depend on user context abstractions, but not on direct ASP.NET Core HTTP or authentication framework types

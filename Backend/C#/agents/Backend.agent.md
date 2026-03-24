@@ -94,11 +94,10 @@ Map the request to one or more task types.
 
 Examples:
 
-- endpoint creation
-- command handler
-- query handler
+- endpoint or controller creation
+- use-case handler or service method
 - domain model update
-- EF Core configuration
+- ORM configuration
 - repository change
 - external API integration
 - blob/file flow

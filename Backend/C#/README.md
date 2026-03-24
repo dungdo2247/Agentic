@@ -68,7 +68,7 @@ Run this inside the specific project where you want full C# context.
 Copy the prompt below and paste it into any AI chat.
 
 The AI will clone the repo, copy generic guidance files, **scan your project's codebase**,
-detect the architecture pattern, adapt instruction content, and generate project-specific
+detect the architecture pattern, adapt instruction and pattern content, and generate project-specific
 `.Project.Instructions.md` files — all automatically.
 
 ```
@@ -99,12 +99,18 @@ Now analyze my project's source code to detect:
 
 a. **Architecture pattern** — look at the project structure and code:
    - MediatR handlers / CQRS command+query separation → "Clean Architecture + CQRS"
-   - Controllers with injected services / repository pattern → "MVC"
+   - Controllers with injected services / repository pattern → "MVC + Service Layer"
    - Feature folders with co-located handlers, models, validators → "Vertical Slices"
-   - Minimal API with endpoint classes → "Minimal API"
+   - Minimal API with service injection → "Minimal API + Service Layer"
+   - Minimal API with MediatR → "Minimal API + CQRS"
    - Other → describe what you find
 
-b. **Tech stack** — scan .csproj files, Program.cs, appsettings.json, usings:
+b. **API style** — determine which endpoint approach is used:
+   - Minimal API (MapGet/MapPost/MapGroup) → "Minimal API"
+   - MVC Controllers ([ApiController]) → "MVC Controllers"
+   - Both → "Mixed"
+
+c. **Tech stack** — scan .csproj files, Program.cs, appsettings.json, usings:
    - .NET version
    - Database and ORM (EF Core, Dapper, etc.)
    - Auth scheme (JWT, Cookie, Identity, etc.)
@@ -112,6 +118,8 @@ b. **Tech stack** — scan .csproj files, Program.cs, appsettings.json, usings:
    - File storage (Azure Blob, AWS S3, local, Cloudinary, etc.)
    - Logging (Serilog, NLog, default, etc.)
    - Validation (FluentValidation, DataAnnotations, etc.)
+   - Mocking library (NSubstitute, Moq, FakeItEasy, etc.)
+   - Assertion library (FluentAssertions, xUnit built-in, etc.)
    - Any other notable libraries
 
 ### Step 3 — Fill in copilot-instructions.md
@@ -124,21 +132,35 @@ Open .github/copilot-instructions.md and replace all `{placeholder}` values in t
 Review each .github/instructions/*.instructions.md file and adapt its content
 to match my project's actual architecture from Step 2.
 
+The generic instruction files contain multi-pattern sections (CQRS, Service Layer, etc.).
 Key adaptations:
-- If my project uses **MVC** (not CQRS): rewrite Application.instructions.md to describe
-  Controllers → Services → Repositories flow instead of MediatR commands/queries.
-- If my project uses **Minimal API**: rewrite WebApi.instructions.md for endpoint classes
-  instead of controller-based routing.
-- If my project uses **Vertical Slices**: rewrite both Application and WebApi instructions
-  to describe feature folders with co-located files.
-- Adapt Infrastructure.instructions.md to match my actual ORM, external services, and patterns.
-- Adapt Testing.instructions.md to match my actual test framework and conventions.
-- Adapt Settings.instructions.md to match my actual configuration pattern.
+- Keep only the sections that match my project's detected architecture pattern.
+- Remove references to patterns/libraries my project does not use.
+- Fill in the "Folder Structure" tables with my project's actual folder layout.
+- Adapt Naming.instructions.md to keep only the naming conventions that match my pattern.
 
 Do NOT change Architecture.instructions.md or Naming.instructions.md unless the project
 clearly uses different conventions.
 
-### Step 5 — Generate .Project.Instructions.md files
+### Step 5 — Adapt pattern files
+
+Pattern files in .github/patterns/ contain **multi-variant sections** labeled `## Variant: {name}`.
+Adapt each pattern file:
+
+- **Keep only the variant matching my project's architecture** — remove all others.
+- Remove the "Variant:" labels — rename sections to direct titles.
+- Remove the multi-variant header note at the top of each file.
+- Replace `{ProjectName}` placeholders with my actual project name.
+- If my project uses a library not covered by any variant, write a NEW example
+  based on my project's actual code.
+
+Files to adapt: ApiPatterns.md, ApplicationPatterns.md, StructurePatterns.md,
+TestingPatterns.md, CodePatterns.md.
+
+Files to keep as-is: InfrastructurePatterns.md, EntityFrameworkCorePatterns.md,
+LogPatterns.md, SettingsPatterns.md.
+
+### Step 6 — Generate .Project.Instructions.md files
 
 Scan my actual source code and generate these files in .github/instructions/:
 
@@ -158,12 +180,13 @@ Scan my actual source code and generate these files in .github/instructions/:
 Each file should contain actual names, namespaces, and patterns from MY codebase — not
 generic placeholders.
 
-### Step 6 — Summary
+### Step 7 — Summary
 
 Show me a summary of:
-- Detected architecture pattern
+- Detected architecture pattern and API style
 - Detected tech stack
 - Which generic instruction files were adapted (and what changed)
+- Which pattern files were adapted (and which variant was kept)
 - Which .Project.Instructions.md files were generated
 - Anything that needs manual review or was unclear
 ```
@@ -179,7 +202,7 @@ Show me a summary of:
       Architecture.instructions.md
       Domain.instructions.md
       Infrastructure.instructions.md ← adapted to your stack
-      Naming.instructions.md
+      Naming.instructions.md         ← adapted to your naming pattern
       Settings.instructions.md       ← adapted to your config pattern
       Testing.instructions.md        ← adapted to your test framework
       WebApi.instructions.md         ← adapted to your API style
@@ -187,7 +210,11 @@ Show me a summary of:
     skills/
       ...
     patterns/
-      ...
+      ApiPatterns.md                 ← adapted to your API style
+      ApplicationPatterns.md         ← adapted to your architecture
+      StructurePatterns.md           ← adapted to your architecture
+      TestingPatterns.md             ← adapted to your test pattern
+      ...                            ← other patterns kept as-is
 ```
 
 ---
