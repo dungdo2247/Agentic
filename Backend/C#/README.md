@@ -26,7 +26,7 @@ Copy the prompt below and paste it into any AI chat (Copilot, ChatGPT, Claude, e
 The AI will clone the repo, copy the agent file, and clean up.
 
 ```
-I want to set up AI guidance from {public_github} into my VS Code user space so it applies to all my workspaces.
+I want to set up AI guidance from https://github.com/dungdo2247/Agentic.git into my VS Code user space so it applies to all my workspaces.
 
 Please do the following steps for me:
 
@@ -72,7 +72,7 @@ detect the architecture pattern, adapt instruction content, and generate project
 `.Project.Instructions.md` files — all automatically.
 
 ```
-I want to set up C# / .NET AI guidance for this project from {public_github}.
+I want to set up C# / .NET AI guidance for this project from https://github.com/dungdo2247/Agentic.git.
 
 Please do the following steps for me:
 

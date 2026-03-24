@@ -41,7 +41,7 @@ detect the tech stack and patterns, adapt instruction content, and generate
 project-specific `.Project.Instructions.md` files — all automatically.
 
 ```
-I want to set up Vue frontend AI guidance for this project from {public_github}.
+I want to set up Vue frontend AI guidance for this project from https://github.com/dungdo2247/Agentic.git.
 
 Please do the following steps for me:
 
